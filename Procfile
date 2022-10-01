@@ -1,1 +1,1 @@
-web : sh setup.sh && streamlit run main.py --Voila.ip=0.0.0.0 --port $PORT
+web : viola --Voila.ip=0.0.0.0 sh setup.sh && streamlit run main.py --port $PORT
