@@ -110,7 +110,6 @@ def precidcateBasedOnDemandClassifier(data):
 
         models = {
             'KNN': KNeighborsRegressor(n_neighbors=3),
-            'K-MEANS': KMeans(n_clusters=2)
         }
 
         predicatedData = pd.DataFrame()
