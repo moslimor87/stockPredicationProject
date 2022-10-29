@@ -195,6 +195,7 @@ def predictStockDataBasedOnGivenClassifier(dataForTraining, dataForTuning):
 
 ##get stocks symbols form list
 def loadStockSymbols():
+    specialStocks = ['DRE','NLSN', 'CTXS']
     indexSymbols = {'FTSE 100': '^FTSE', 'S&P 500': '^GSPC', 'NASDAQ 100': 'NDX',
                     'DOW JONES': 'DJIA', 'IBEX 35': 'IBEX'}
     # get symbol list based on market
@@ -205,12 +206,12 @@ def loadStockSymbols():
     indexBySectors = {}
     stockBySectors = {}
     for y in stock_data.get_stocks_by_country('United States'):
-        if y["symbol"] not in stocks:
+        if y["symbol"] not in stocks and y["symbol"] not in specialStocks:
             stocks.append(y["symbol"])
         for industry in y['industries']:
             if stockBySectors.get(industry) is None:
                 stockBySectors.update({industry: []})
-            if y["symbol"] not in stockBySectors[industry]:
+            if y["symbol"] not in stockBySectors[industry] and y["symbol"] not in specialStocks:
                 stockBySectors[industry].append(y["symbol"])
             if indexBySectors.get(industry) is None:
                 indexBySectors.update({industry: []})
@@ -294,7 +295,6 @@ def displayMenuOptions(stockSymbols, indexSymbols, stocksByCategory, indexByCate
                 horizontal=True
             )
 
-            print("indexByCategory:", indexByCategory)
             selectedOption = []
             if st.session_state.categoryOption == "index":
                 selectedOption = indexByCategory.get(st.session_state.category)
