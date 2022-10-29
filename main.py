@@ -294,16 +294,18 @@ def displayMenuOptions(stockSymbols, indexSymbols, stocksByCategory, indexByCate
                 horizontal=True
             )
 
-            selectedOption = None
+            print("indexByCategory:", indexByCategory)
+            selectedOption = []
             if st.session_state.categoryOption == "index":
                 selectedOption = indexByCategory.get(st.session_state.category)
             if st.session_state.categoryOption == "stock":
                 selectedOption = stocksByCategory.get(st.session_state.category)
 
-            if selectedOption is not None:
-                processRequest(selectedOption)
-            else:
+            selectedOption = list(filter(None, selectedOption))
+            if len(selectedOption) == 0:
                 st.text("The selected option is not active, please choose another one")
+            else:
+                processRequest(selectedOption)
 
 
 def main():
