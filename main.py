@@ -93,9 +93,6 @@ def downloadStockDetails(stock, timeRangeForPredication):
 
 
 def calculatePredictedData(data, classifier, futureDaysToPredicate, X, y):
-    print("data:", data)
-    print("xxxxx:", len(X))
-    print("yyyy:",len(y))
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
     classifier.fit(x_train, y_train)
     x_future = data.drop(['Prediction'], 1)[:-futureDaysToPredicate]
@@ -105,9 +102,7 @@ def calculatePredictedData(data, classifier, futureDaysToPredicate, X, y):
     tree_prediction = classifier.predict(x_future)
     predictions = tree_prediction
     valid = data[X.shape[0]:]
-    print("valid", len(valid))
 
-    print("predictions", len(predictions))
     valid['Predictions'] = predictions
     return valid['Predictions']
 
@@ -229,30 +224,6 @@ def loadStockSymbols():
                     indexBySectors[industry].append(symbol)
 
     return stocks, indexs, stockBySectors, indexBySectors
-
-#def processRequestS(symbols):
-#    daysToPredicte = 7
-
-#    symbols.sort(reverse=False)
-
-
-#    for stock in symbols:
-#        dateRangeForTraining = getTimeRangeAsString(150)
-#        dataForTuning = downloadStockDetails(stock, dateRangeForTraining)
-
-#        if not len(dataForTuning) == 0 and stock  in ['CTXS','DRE','NLSN']:
-
-#                print("stock:", stock)
-#                st.title(stock)
-#                dataForTraining = dataForTuning[len(dataForTuning) - 37 :]
-
- #               predicatedData = predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning)
-
-#                actualDataForPredication = pd.DataFrame(dataForTraining['Close'][len(dataForTraining) - daysToPredicte:])
-#                actualDataForPredication.rename(columns={'Close': 'Original'}, inplace=True)
-#                for column in predicatedData.columns:
-#                    actualDataForPredication[column] = predicatedData[column][
-#                                               actualDataForPredication.index[0]:actualDataForPredication.index[-1]]
 
 
 def processRequest(symbols):
