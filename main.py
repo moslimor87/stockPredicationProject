@@ -93,6 +93,9 @@ def downloadStockDetails(stock, timeRangeForPredication):
 
 
 def calculatePredictedData(data, classifier, futureDaysToPredicate, X, y):
+    print("data:", data)
+    print("xxxxx:", len(X))
+    print("yyyy:",len(y))
     x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.25)
     classifier.fit(x_train, y_train)
     x_future = data.drop(['Prediction'], 1)[:-futureDaysToPredicate]
@@ -102,6 +105,9 @@ def calculatePredictedData(data, classifier, futureDaysToPredicate, X, y):
     tree_prediction = classifier.predict(x_future)
     predictions = tree_prediction
     valid = data[X.shape[0]:]
+    print("valid", len(valid))
+
+    print("predictions", len(predictions))
     valid['Predictions'] = predictions
     return valid['Predictions']
 
@@ -131,13 +137,13 @@ def predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning
         if name == 'ID3':
             classifier = DecisionTreeClassifier(criterion="entropy", max_depth=classifierTuningParameters['decisionTree']['max_depth'],
                                                 min_samples_split=classifierTuningParameters['decisionTree']['min_samples_split'],
-                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'],
-                                                max_features="log2")
+                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'])#,
+                                               # max_features="log2")
         if name == 'CART':
             classifier = DecisionTreeClassifier(criterion="gini", max_depth=classifierTuningParameters['decisionTree']['max_depth'],
                                                 min_samples_split=classifierTuningParameters['decisionTree']['min_samples_split'],
-                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'],
-                                                max_features="log2")
+                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'])#,
+                                               # max_features="log2")
 
         x, y = getXYParamsBasedOnData(dataForTraining)
         predicatedData[name] = calculatePredictedData(dataForTraining, classifier, futureDaysToPredicate, x, y.astype('int'))
@@ -224,6 +230,30 @@ def loadStockSymbols():
 
     return stocks, indexs, stockBySectors, indexBySectors
 
+#def processRequestS(symbols):
+#    daysToPredicte = 7
+
+#    symbols.sort(reverse=False)
+
+
+#    for stock in symbols:
+#        dateRangeForTraining = getTimeRangeAsString(150)
+#        dataForTuning = downloadStockDetails(stock, dateRangeForTraining)
+
+#        if not len(dataForTuning) == 0 and stock  in ['CTXS','DRE','NLSN']:
+
+#                print("stock:", stock)
+#                st.title(stock)
+#                dataForTraining = dataForTuning[len(dataForTuning) - 37 :]
+
+ #               predicatedData = predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning)
+
+#                actualDataForPredication = pd.DataFrame(dataForTraining['Close'][len(dataForTraining) - daysToPredicte:])
+#                actualDataForPredication.rename(columns={'Close': 'Original'}, inplace=True)
+#                for column in predicatedData.columns:
+#                    actualDataForPredication[column] = predicatedData[column][
+#                                               actualDataForPredication.index[0]:actualDataForPredication.index[-1]]
+
 
 def processRequest(symbols):
     daysToPredicte = 7
@@ -239,11 +269,8 @@ def processRequest(symbols):
             st.text("The selected stock is not active, please choose another stock")
         else:
             numberOfDaysTraining = getNumberOfDaysForTraining()
-
             dataForTraining = dataForTuning[len(dataForTuning) - numberOfDaysTraining:]
-
             predicatedData = predictStockDataBasedOnGivenClassifier(dataForTraining, dataForTuning)
-
             actualDataForPredication = pd.DataFrame(dataForTraining['Close'][len(dataForTraining) - daysToPredicte:])
             actualDataForPredication.rename(columns={'Close': 'Original'}, inplace=True)
             for column in predicatedData.columns:
@@ -267,7 +294,6 @@ def processRequest(symbols):
 
 # select stock by symbol/index/category and process request by selection
 def displayMenuOptions(stockSymbols, indexSymbols, stocksByCategory, indexByCategory):
-
     st.radio(
         "Select stock by:",
         ["Symbol", "Index", "Category"],
@@ -297,10 +323,16 @@ def displayMenuOptions(stockSymbols, indexSymbols, stocksByCategory, indexByCate
                 horizontal=True
             )
 
+            selectedOption = None
             if st.session_state.categoryOption == "index":
-                processRequest(indexByCategory.get(st.session_state.category))
+                selectedOption = indexByCategory.get(st.session_state.category)
             if st.session_state.categoryOption == "stock":
-                processRequest(stocksByCategory.get(st.session_state.category))
+                selectedOption = stocksByCategory.get(st.session_state.category)
+
+            if selectedOption is not None:
+                processRequest(selectedOption)
+            else:
+                st.text("The selected option is not active, please choose another one")
 
 
 def main():
