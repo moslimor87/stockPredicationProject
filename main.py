@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 from pytickersymbols import PyTickerSymbols
-from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
@@ -45,6 +45,8 @@ def tuneKnnHyperParameters(classifier, X, y):
     # Fit the model
     grid.fit(x_train, y_train)
     classifierTuningParameters['knn'] = grid.best_params_
+    print(classifierTuningParameters['knn'])
+
 
 
 ##get tuning parameters for decision tree algorithms
@@ -53,6 +55,7 @@ def tuneDecisionTreeHyperParameters(classifier, X, y):
     grid = GridSearchCV(classifier, param_grid=decisionTreeParamsForTuning, cv=2, verbose=1, n_jobs=1)
     grid.fit(x_train, y_train)
     classifierTuningParameters['decisionTree'] = grid.best_params_
+    print(classifierTuningParameters['decisionTree'])
 
 
 ##get time range for training data
@@ -126,19 +129,20 @@ def predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning
 
     predicatedData = pd.DataFrame()
     for name, classifier in models.items():
-        if not bool(classifierTuningParameters['decisionTree']):
+        if not classifierTuningParameters.get('decisionTree'):
+            print("in sadasdas")
             X, Y = getXYParamsBasedOnData(dataForTuning)
             tuneDecisionTreeHyperParameters(classifier, X, Y.astype('int'))
         if name == 'ID3':
             classifier = DecisionTreeClassifier(criterion="entropy", max_depth=classifierTuningParameters['decisionTree']['max_depth'],
                                                 min_samples_split=classifierTuningParameters['decisionTree']['min_samples_split'],
-                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'])#,
-                                               # max_features="log2")
+                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'],
+                                                max_features="log2")
         if name == 'CART':
             classifier = DecisionTreeClassifier(criterion="gini", max_depth=classifierTuningParameters['decisionTree']['max_depth'],
                                                 min_samples_split=classifierTuningParameters['decisionTree']['min_samples_split'],
-                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'])#,
-                                               # max_features="log2")
+                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'],
+                                                max_features="log2")
 
         x, y = getXYParamsBasedOnData(dataForTraining)
         predicatedData[name] = calculatePredictedData(dataForTraining, classifier, futureDaysToPredicate, x, y.astype('int'))
@@ -160,7 +164,7 @@ def predictStockDataBasedOnDemandClassifier(dataForTraining, dataForTuning):
     for name, classifier in models.items():
 
         if name == 'KNN':
-            if not bool(classifierTuningParameters['knn']):
+            if not classifierTuningParameters.get('knn'):
                 X, Y = getXYParamsBasedOnData(dataForTuning)
                 tuneKnnHyperParameters(classifier, X, Y)
 
