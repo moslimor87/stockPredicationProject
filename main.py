@@ -45,7 +45,6 @@ def tuneKnnHyperParameters(classifier, X, y):
     # Fit the model
     grid.fit(x_train, y_train)
     classifierTuningParameters['knn'] = grid.best_params_
-    print(classifierTuningParameters['knn'])
 
 
 
@@ -55,7 +54,6 @@ def tuneDecisionTreeHyperParameters(classifier, X, y):
     grid = GridSearchCV(classifier, param_grid=decisionTreeParamsForTuning, cv=2, verbose=1, n_jobs=1)
     grid.fit(x_train, y_train)
     classifierTuningParameters['decisionTree'] = grid.best_params_
-    print(classifierTuningParameters['decisionTree'])
 
 
 ##get time range for training data
@@ -130,7 +128,6 @@ def predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning
     predicatedData = pd.DataFrame()
     for name, classifier in models.items():
         if not classifierTuningParameters.get('decisionTree'):
-            print("in sadasdas")
             X, Y = getXYParamsBasedOnData(dataForTuning)
             tuneDecisionTreeHyperParameters(classifier, X, Y.astype('int'))
         if name == 'ID3':
@@ -200,7 +197,7 @@ def predictStockDataBasedOnGivenClassifier(dataForTraining, dataForTuning):
 ##get stocks symbols form list
 def loadStockSymbols():
     specialStocks = ['DRE','NLSN', 'CTXS']
-    indexSymbols = {'FTSE 100': '^FTSE', 'S&P 500': '^GSPC', 'NASDAQ 100': 'NDX',
+    indexSymbols = {'S&P 500': '^GSPC', 'NASDAQ 100': 'NDX',
                     'DOW JONES': 'DJIA', 'IBEX 35': 'IBEX'}
     # get symbol list based on market
     stock_data = PyTickerSymbols()
@@ -229,7 +226,6 @@ def loadStockSymbols():
                     indexBySectors[industry].append(symbol)
 
     return stocks, indexs, stockBySectors, indexBySectors
-
 
 def processRequest(symbols):
     daysToPredicte = 7
@@ -270,6 +266,7 @@ def processRequest(symbols):
 
 # select stock by symbol/index/category and process request by selection
 def displayMenuOptions(stockSymbols, indexSymbols, stocksByCategory, indexByCategory):
+
     st.radio(
         "Select stock by:",
         ["Symbol", "Index", "Category"],
