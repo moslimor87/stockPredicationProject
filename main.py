@@ -7,6 +7,7 @@ import pandas as pd
 import streamlit as st
 import yfinance as yf
 from pytickersymbols import PyTickerSymbols
+from sklearn import tree
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeClassifier
@@ -19,6 +20,13 @@ hide_menu = """
 }
 </style>
 """
+title_alignment = """
+<style>
+#the-title {
+  text-align: center
+}
+</style>
+"""
 
 classifierTuningParameters = {
     'decisionTree': {},
@@ -26,15 +34,14 @@ classifierTuningParameters = {
 }
 
 decisionTreeParamsForTuning = {
-        "max_depth": range(1, 10),
-        "min_samples_split": range(2, 10),
-        "min_samples_leaf": range(1, 5),
+    "max_depth": range(1, 10),
+    "min_samples_split": range(2, 10),
+    "min_samples_leaf": range(1, 5),
 }
 
 
 ##get tuning parameters for KNN algorithm
 def tuneKnnHyperParameters(classifier, X, y):
-
     leaf_size = list(range(1, 50))
     n_neighbors = list(range(1, 5))
     p = [1, 2]
@@ -45,7 +52,6 @@ def tuneKnnHyperParameters(classifier, X, y):
     # Fit the model
     grid.fit(x_train, y_train)
     classifierTuningParameters['knn'] = grid.best_params_
-
 
 
 ##get tuning parameters for decision tree algorithms
@@ -116,8 +122,8 @@ def getXYParamsBasedOnData(data):
 
     return X, y
 
-def predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning):
 
+def predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning, decisionTreeStructure):
     futureDaysToPredicate = 7
 
     models = {
@@ -131,18 +137,28 @@ def predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning
             X, Y = getXYParamsBasedOnData(dataForTuning)
             tuneDecisionTreeHyperParameters(classifier, X, Y.astype('int'))
         if name == 'ID3':
-            classifier = DecisionTreeClassifier(criterion="entropy", max_depth=classifierTuningParameters['decisionTree']['max_depth'],
-                                                min_samples_split=classifierTuningParameters['decisionTree']['min_samples_split'],
-                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'],
-                                                max_features="log2")
+            classifier = tree.DecisionTreeClassifier(criterion="entropy",
+                                                     max_depth=classifierTuningParameters['decisionTree']['max_depth'],
+                                                     min_samples_split=classifierTuningParameters['decisionTree'][
+                                                         'min_samples_split'],
+                                                     min_samples_leaf=classifierTuningParameters['decisionTree'][
+                                                         'min_samples_leaf'],
+                                                     max_features="log2")
+            decisionTreeStructure['ID3'] = classifier
+
         if name == 'CART':
-            classifier = DecisionTreeClassifier(criterion="gini", max_depth=classifierTuningParameters['decisionTree']['max_depth'],
-                                                min_samples_split=classifierTuningParameters['decisionTree']['min_samples_split'],
-                                                min_samples_leaf=classifierTuningParameters['decisionTree']['min_samples_leaf'],
-                                                max_features="log2")
+            classifier = tree.DecisionTreeClassifier(criterion="gini",
+                                                     max_depth=classifierTuningParameters['decisionTree']['max_depth'],
+                                                     min_samples_split=classifierTuningParameters['decisionTree'][
+                                                         'min_samples_split'],
+                                                     min_samples_leaf=classifierTuningParameters['decisionTree'][
+                                                         'min_samples_leaf'],
+                                                     max_features="log2")
+            decisionTreeStructure['CART'] = classifier
 
         x, y = getXYParamsBasedOnData(dataForTraining)
-        predicatedData[name] = calculatePredictedData(dataForTraining, classifier, futureDaysToPredicate, x, y.astype('int'))
+        predicatedData[name] = calculatePredictedData(dataForTraining, classifier, futureDaysToPredicate, x,
+                                                      y.astype('int'))
 
     return predicatedData
 
@@ -166,8 +182,8 @@ def predictStockDataBasedOnDemandClassifier(dataForTraining, dataForTuning):
                 tuneKnnHyperParameters(classifier, X, Y)
 
             classifier = KNeighborsRegressor(n_neighbors=classifierTuningParameters['knn']['n_neighbors'],
-                                            leaf_size=classifierTuningParameters['knn']['leaf_size'],
-                                            p=classifierTuningParameters['knn']['p'])
+                                             leaf_size=classifierTuningParameters['knn']['leaf_size'],
+                                             p=classifierTuningParameters['knn']['p'])
 
         if name == 'GNB':
             y = y.astype('int')
@@ -187,8 +203,29 @@ def predictStockDataBasedOnGivenClassifier(dataForTraining, dataForTuning):
         horizontal=True
     )
 
+    decisionTreeStructure = {
+        'ID3': None,
+        'CART': None
+    }
+
     if st.session_state.classifier == "Decision Tree":
-        return predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning)
+        predictedData = predictStockDataBasedOnDecisionTreeClassifier(dataForTraining, dataForTuning,
+                                                                      decisionTreeStructure)
+
+        col1, col2 = st.columns(2,gap="Large")
+
+        with col1:
+            st.write('ID3')
+            st.graphviz_chart(tree.export_graphviz(decisionTreeStructure['ID3'], out_file=None, max_depth=2,
+                                                   feature_names=dataForTraining.columns[:-1],
+                                                   filled=True))
+        with col2:
+            st.write('CART')
+            st.graphviz_chart(tree.export_graphviz(decisionTreeStructure['CART'], out_file=None, max_depth=2,
+                                                   feature_names=dataForTraining.columns[:-1],
+                                                   filled=True))
+
+        return predictedData
 
     if st.session_state.classifier == "On Demand":
         return predictStockDataBasedOnDemandClassifier(dataForTraining, dataForTuning)
@@ -196,7 +233,7 @@ def predictStockDataBasedOnGivenClassifier(dataForTraining, dataForTuning):
 
 ##get stocks symbols form list
 def loadStockSymbols():
-    specialStocks = ['DRE','NLSN', 'CTXS']
+    specialStocks = ['DRE', 'NLSN', 'CTXS']
     indexSymbols = {'S&P 500': '^GSPC', 'NASDAQ 100': 'NDX',
                     'DOW JONES': 'DJIA', 'IBEX 35': 'IBEX'}
     # get symbol list based on market
@@ -227,6 +264,7 @@ def loadStockSymbols():
 
     return stocks, indexs, stockBySectors, indexBySectors
 
+
 def processRequest(symbols):
     daysToPredicte = 7
 
@@ -247,10 +285,11 @@ def processRequest(symbols):
             actualDataForPredication.rename(columns={'Close': 'Original'}, inplace=True)
             for column in predicatedData.columns:
                 actualDataForPredication[column] = predicatedData[column][
-                                               actualDataForPredication.index[0]:actualDataForPredication.index[-1]]
+                                                   actualDataForPredication.index[0]:actualDataForPredication.index[-1]]
 
             ##plot predict stock data results of classifier algorithms
-            fig = px.line(actualDataForPredication, x=actualDataForPredication.index, y=actualDataForPredication.columns)
+            fig = px.line(actualDataForPredication, x=actualDataForPredication.index,
+                          y=actualDataForPredication.columns)
             fig.update_layout(
                 legend_title="",
                 autosize=False,
@@ -258,15 +297,16 @@ def processRequest(symbols):
                 height=500)
             fig.for_each_trace(
                 lambda trace: trace.update(line=dict(color="Blue", width=12)) if trace.name == "Original" else (
-                    trace.update(line=dict(color="Orange", width=10)) if trace.name == actualDataForPredication.columns[1]
+                    trace.update(line=dict(color="Orange", width=10)) if trace.name == actualDataForPredication.columns[
+                        1]
                     else (trace.update(line=dict(color="Green", width=4)))))
             fig.update_yaxes(title_text='Close Price USD ($)')
             config = {'displayModeBar': False}
             st.plotly_chart(fig, config=config)
 
+
 # select stock by symbol/index/category and process request by selection
 def displayMenuOptions(stockSymbols, indexSymbols, stocksByCategory, indexByCategory):
-
     st.radio(
         "Select stock by:",
         ["Symbol", "Index", "Category"],
